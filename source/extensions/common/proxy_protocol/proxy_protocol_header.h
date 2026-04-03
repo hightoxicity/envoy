@@ -68,6 +68,14 @@ void generateProxyProtoHeader(const envoy::config::core::v3::ProxyProtocolConfig
 // Generates the v2 PROXY protocol local command header and adds it to the specified buffer
 void generateV2LocalHeader(Buffer::Instance& out);
 
+// Generates the v2 PROXY protocol header with UDP (DGRAM) transport and adds it to the specified
+// buffer. Use this variant when the proxied connection is UDP rather than TCP.
+void generateV2UdpHeader(const std::string& src_addr, const std::string& dst_addr,
+                          uint32_t src_port, uint32_t dst_port,
+                          Network::Address::IpVersion ip_version, Buffer::Instance& out);
+void generateV2UdpHeader(const Network::Address::Ip& source_address,
+                          const Network::Address::Ip& dest_address, Buffer::Instance& out);
+
 // Generates the v2 PROXY protocol header including the TLV vector into the specified buffer.
 bool generateV2Header(const Network::ProxyProtocolData& proxy_proto_data, Buffer::Instance& out,
                       bool pass_all_tlvs, const absl::flat_hash_set<uint8_t>& pass_through_tlvs,

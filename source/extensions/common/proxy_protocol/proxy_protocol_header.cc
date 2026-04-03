@@ -221,6 +221,68 @@ void generateV2LocalHeader(Buffer::Instance& out) {
   out.add(addr_fam_protocol_and_length, 4);
 }
 
+void generateV2UdpHeader(const std::string& src_addr, const std::string& dst_addr,
+                          uint32_t src_port, uint32_t dst_port,
+                          Network::Address::IpVersion ip_version, Buffer::Instance& out) {
+  out.add(PROXY_PROTO_V2_SIGNATURE, PROXY_PROTO_V2_SIGNATURE_LEN);
+
+  const uint8_t version_and_command = PROXY_PROTO_V2_VERSION << 4 | PROXY_PROTO_V2_ONBEHALF_OF;
+  out.add(&version_and_command, 1);
+
+  uint8_t address_family_and_protocol;
+  switch (ip_version) {
+  case Network::Address::IpVersion::v4:
+    address_family_and_protocol = PROXY_PROTO_V2_AF_INET << 4;
+    break;
+  case Network::Address::IpVersion::v6:
+    address_family_and_protocol = PROXY_PROTO_V2_AF_INET6 << 4;
+    break;
+  }
+  address_family_and_protocol |= PROXY_PROTO_V2_TRANSPORT_DGRAM;
+  out.add(&address_family_and_protocol, 1);
+
+  uint16_t addr_length;
+  uint16_t addr_length_n;
+
+  switch (ip_version) {
+  case Network::Address::IpVersion::v4: {
+    addr_length = PROXY_PROTO_V2_ADDR_LEN_INET;
+    addr_length_n = htons(addr_length);
+    out.add(&addr_length_n, 2);
+    const uint32_t net_src_addr =
+        Network::Address::Ipv4Instance(src_addr, src_port).ip()->ipv4()->address();
+    const uint32_t net_dst_addr =
+        Network::Address::Ipv4Instance(dst_addr, dst_port).ip()->ipv4()->address();
+    out.add(&net_src_addr, 4);
+    out.add(&net_dst_addr, 4);
+    break;
+  }
+  case Network::Address::IpVersion::v6: {
+    addr_length = PROXY_PROTO_V2_ADDR_LEN_INET6;
+    addr_length_n = htons(addr_length);
+    out.add(&addr_length_n, 2);
+    const absl::uint128 net_src_addr =
+        Network::Address::Ipv6Instance(src_addr, src_port).ip()->ipv6()->address();
+    const absl::uint128 net_dst_addr =
+        Network::Address::Ipv6Instance(dst_addr, dst_port).ip()->ipv6()->address();
+    out.add(&net_src_addr, 16);
+    out.add(&net_dst_addr, 16);
+    break;
+  }
+  }
+
+  const uint16_t net_src_port = htons(static_cast<uint16_t>(src_port));
+  const uint16_t net_dst_port = htons(static_cast<uint16_t>(dst_port));
+  out.add(&net_src_port, 2);
+  out.add(&net_dst_port, 2);
+}
+
+void generateV2UdpHeader(const Network::Address::Ip& source_address,
+                          const Network::Address::Ip& dest_address, Buffer::Instance& out) {
+  generateV2UdpHeader(source_address.addressAsString(), dest_address.addressAsString(),
+                      source_address.port(), dest_address.port(), source_address.version(), out);
+}
+
 } // namespace ProxyProtocol
 } // namespace Common
 } // namespace Extensions
