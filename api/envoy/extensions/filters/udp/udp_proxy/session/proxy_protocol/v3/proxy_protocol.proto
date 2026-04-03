@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package envoy.extensions.filters.udp.udp_proxy.session.proxy_protocol.v3;
+
+import "udpa/annotations/status.proto";
+
+option java_package = "io.envoyproxy.envoy.extensions.filters.udp.udp_proxy.session.proxy_protocol.v3";
+option java_outer_classname = "ProxyProtocolProto";
+option java_multiple_files = true;
+option go_package = "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/udp/udp_proxy/session/proxy_protocol/v3;proxy_protocolv3";
+option (udpa.annotations.file_status).package_version_status = ACTIVE;
+
+// [#protodoc-title: UDP Proxy Protocol session filter]
+// UDP session filter that prepends a PROXY protocol header to upstream datagrams,
+// communicating the original client IP address and port to cluster members.
+// [#extension: envoy.filters.udp.session.proxy_protocol]
+
+// Configuration for the UDP proxy protocol session filter.
+message FilterConfig {
+  // PROXY protocol version to use when generating the header.
+  enum Version {
+    // PROXY protocol version 2. Binary format with UDP (DGRAM) transport type. (default)
+    V2 = 0;
+
+    // PROXY protocol version 1. Human-readable text format.
+    // Note: the PROXY protocol v1 specification only defines TCP transport;
+    // this filter will still emit a v1 header for use with servers that accept
+    // v1 format regardless of transport.
+    V1 = 1;
+  }
+
+  // The PROXY protocol version to use. Defaults to ``V2`` (binary, UDP transport).
+  Version version = 1;
+
+  // If ``true``, the PROXY protocol header is prepended only to the **first** datagram of
+  // each session and subsequent datagrams are forwarded unmodified.
+  //
+  // If ``false`` (the default), the header is prepended to **every** upstream datagram so
+  // that stateless upstream servers always receive the client address context.
+  bool prepend_once = 2;
+}
